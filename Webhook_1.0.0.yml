@@ -1,31 +1,24 @@
----
 AWSTemplateFormatVersion: 2010-09-09
-
 Description: An application for sending events to a webhook.
-
 Transform:
 - AWS::Serverless-2016-10-31
-
-# Metadata to use for the publishing to the SAR
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: thetis-ims-webhook
-    Description:  An application for sending events as webhook calls
+    Description: An application for sending events as webhook calls
     Author: thetis-apps
     SpdxLicenseId: Apache-2.0
-    LicenseUrl: LICENSE.txt
-    ReadmeUrl: README.md
-    Labels: ['thetis-ims']
+    LicenseUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/4612b8d5aa75b9b9936c9b7b9e6c7e82
+    ReadmeUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/823e4c805d22ebc01ee9a9a6b7b16b5b
+    Labels:
+    - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/Webhook
     SemanticVersion: 1.0.0
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
-
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 30
     Runtime: nodejs12.x
-
 Parameters:
   ContextId:
     Type: String
@@ -44,22 +37,25 @@ Parameters:
     Type: String
     MinLength: 1
   DevOpsEmail:
-    Description: The email address to send mail to when messages in the dead letter queue.
+    Description: The email address to send mail to when messages in the dead letter
+      queue.
     Type: String
     MinLength: 4
-    
 Resources:
   EventQueue:
     Type: AWS::SQS::Queue
     Properties:
       FifoQueue: true
       ContentBasedDeduplication: true
-      RedrivePolicy: 
-        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - Arn
         maxReceiveCount: 144
       VisibilityTimeout: 300
   EventRule:
-    Type: AWS::Events::Rule 
+    Type: AWS::Events::Rule
     Properties:
       EventPattern:
         source:
@@ -69,23 +65,27 @@ Resources:
           - Ref: ContextId
       Targets:
       - Id: Target
-        Arn: !GetAtt EventQueue.Arn
-        SqsParameters: 
-          MessageGroupId: "SINGLETON"
-
+        Arn:
+          Fn::GetAtt:
+          - EventQueue
+          - Arn
+        SqsParameters:
+          MessageGroupId: SINGLETON
   EventPermission:
     Type: AWS::SQS::QueuePolicy
-    Properties: 
-      Queues: 
-        - Ref: EventQueue
-      PolicyDocument: 
-        Statement: 
-          - Action: SQS:SendMessage 
-            Effect: Allow
-            Resource: !GetAtt EventQueue.Arn
-            Principal: 
-              Service: events.amazonaws.com 
-      
+    Properties:
+      Queues:
+      - Ref: EventQueue
+      PolicyDocument:
+        Statement:
+        - Action: SQS:SendMessage
+          Effect: Allow
+          Resource:
+            Fn::GetAtt:
+            - EventQueue
+            - Arn
+          Principal:
+            Service: events.amazonaws.com
   Function:
     Type: AWS::Serverless::Function
     Properties:
@@ -106,10 +106,14 @@ Resources:
           Properties:
             BatchSize: 1
             Enabled: true
-            Queue: !GetAtt EventQueue.Arn
+            Queue:
+              Fn::GetAtt:
+              - EventQueue
+              - Arn
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/9b166cc4dc4e250aa4d8a9940db82b6b
   DeadLetterQueue:
     Type: AWS::SQS::Queue
-    Properties: 
+    Properties:
       FifoQueue: true
   Alarm:
     Type: AWS::CloudWatch::Alarm
@@ -136,7 +140,7 @@ Resources:
     Type: AWS::SNS::Topic
     Properties:
       Subscription:
-      - Endpoint: 
-          Ref: DevOpsEmail        
+      - Endpoint:
+          Ref: DevOpsEmail
         Protocol: email
       DisplayName: Incidents to be handled by Thetis Devops.

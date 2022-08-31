@@ -29,6 +29,8 @@ The application will only call your webhook when an event of one of these types 
 
 # Error handling
 
-The application queues all events as they occur. A function within the application reads events from the queue and calls your webhook. If your webhook returns any other status code than, 200 the event is put back on queue. 
+The application queues all events as they occur. A function within the application reads events from the queue and calls your webhook. 
+If your webhook returns any other status code than 200, the event is put back on queue. 
 After 5 minutes the application will reread the failed event from the queue and try to call your webhook again. The application will do that for 12 hours, if your webhook keeps failing. 
-After 12 hours the event is moved to a dead letter queue. Events in the dead letter queue may be processed at a later time. However, for that you must contact us.
+After 12 hours the event is moved to a dead letter queue. Events in the dead letter queue may be processed at a later time. However, for that you must contact us. 
+Note that if one event causes your webhook to fail, no other events will be handled by the function until the event has been moved to the dead letter queue.

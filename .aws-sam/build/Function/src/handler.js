@@ -87,17 +87,19 @@ exports.eventHandler = async (sqsEvent, context) => {
         
         console.log(JSON.stringify(setup));
         
-        if (setup != null) {
+        if (setup != null && setup.url != null) {
             let found = false;
-            for (let eventType of setup.eventTypes) {
-                if (eventType == detail.eventType) {
-                    found = true;   
+            if (setup.eventTypes != null) {
+                for (let eventType of setup.eventTypes) {
+                    if (eventType == detail.eventType) {
+                        found = true;   
+                    }
                 }
+            } else {
+                found = true;
             }
+            
             if (found) {
-                
-                console.log("Calling webhook");
-                
                 await axios.post(setup.url, event);    
             }
         }

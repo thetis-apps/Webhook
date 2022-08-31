@@ -1,50 +1,36 @@
 # Description
 
+This application calls an endpoint of your choice whenever an event occur within Thetis IMS. You can read more about events in Thetis IMS [here](https://integration.thetis-ims.com/docs/EventBusDescription/).
 
 # Installation
 
-You may install the latest version of the application from the Serverless Application Repository. It is registered under the name thetis-ims-link-shopify-inventory-integration.
-
-## Application settings
-
-An instance of this application must be attached to a sales channel. Hence, when installing the application you must provide the number of the sales channel (SellerNumber).
-
-- Application name
-- ClientId 
-- ClientSecret
-- ApiKey 
-- ContextId
-- SellerNumber
-- DevOpsEmail
+You may install the latest version of the application from within Thetis IMS. The name of the application is 'thetis-ims-webhook'.
 
 # Configuration
 
-You must create a 'custom application' in your Shopify account. When doing that Shopify generates an access token for you. You need these for the configuration of the application. 
-
-You must make sure that the access token has the priviliges required. The required OAuth scopes are: write_inventory, read_inventory, read_products.
-
-Shopify allows inventory to be spread out among many locations. Each location has its own set of inventory levels. For the application to know in which location to adjust the inventory levels, you must provide the name of the location that depicts your warehouse.
-
-Therefore, in the data document of the sales channel:
+In the data document of the context in which you install the application, you must create an object by the name 'Webhook'.
 
 ```
 {
-  "LinkShopifyInventoryIntegration": {
-    "host": "forste-test.myshopify.com",
-    "accessToken": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "locationName": "Thetis"
+  "Webhook": {
+    "url": "https://webhook.site/49cde022-7d31-467a-a290-ef70766d08bf",
+    "eventTypes": [ "availableStockChanged", "physicalStockChanged" ]
   }
 }
 ```
 
-# Events
+### url
 
-## Available stock changed
+This is the address of your webhook.
 
-Every time available stock of a trade item changes, the application adjust the inventory level of the corresponding variant in Shopify. This is, however, subject to the condition that the change in available stock was not caused by a reservation made by Shopify. 
+### eventTypes
 
-The application works well in a situation with many sales channels. If a reservation is made by another sales channel than the one attached to a given instance of this application, the change in available stock will cause the inventory level in Shopify to change. Only if the reservation is made by the sales channel related to said instance of the application, will the change in Thetis IMS not result in a corresponding change in Shopify.
+The application will only call your webhook when an event of one of these types occur. This element is optional. If you leave it out, the application will call your webhook for all events.
 
-# Notes
+# Error handling
 
-On installing this application the inventory levels in Shopify must be in sync with the stock in hand in Thetis IMS. The application only does incremental changes to the inventory levels. So, if the inventory levels are wrong from start they will continue to be wrong.
+The application queues all events as they occur. A function within the application reads events from the queue and calls your webhook. 
+If your webhook returns any other status code than 200, the event is put back on queue. 
+After 5 minutes the application will reread the failed event from the queue and try to call your webhook again. The application will do that for 12 hours, if your webhook keeps failing. 
+After 12 hours the event is moved to a dead letter queue. Events in the dead letter queue may be processed at a later time. However, for that you must contact us. 
+Note that if one event causes your webhook to fail, no other events will be handled by the function until the event has been moved to the dead letter queue.

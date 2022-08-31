@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: A bridge from the IMS event bus to a HTTP/S endpoint.
+Description: An application for sending events to a webhook.
 Transform:
 - AWS::Serverless-2016-10-31
 Metadata:
   AWS::ServerlessRepo::Application:
-    Name: thetis-ims-https-bridge
+    Name: thetis-ims-webhook
     Description: An application for sending events as webhook calls
     Author: thetis-apps
     SpdxLicenseId: Apache-2.0
@@ -13,7 +13,7 @@ Metadata:
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/Webhook
-    SemanticVersion: '0.0.0'
+    SemanticVersion: 1.0.0
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
 Globals:
   Function:
