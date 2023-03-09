@@ -100,7 +100,9 @@ exports.eventHandler = async (sqsEvent, context) => {
             }
             
             if (found) {
-                await axios.post(setup.url, event);    
+                console.log("Calling webhook at: " + setup.url);
+                let response = await axios.post(setup.url, event);   
+                console.log("SUCCESS " + JSON.stringify(response.data));
             }
         }
         

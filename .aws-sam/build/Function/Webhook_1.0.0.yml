@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: A bridge from the IMS event bus to a HTTP/S endpoint.
+Description: An application for sending events to a webhook.
 Transform:
 - AWS::Serverless-2016-10-31
 Metadata:
   AWS::ServerlessRepo::Application:
-    Name: thetis-ims-https-bridge
+    Name: thetis-ims-webhook
     Description: An application for sending events as webhook calls
     Author: thetis-apps
     SpdxLicenseId: Apache-2.0
@@ -13,7 +13,7 @@ Metadata:
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/Webhook
-    SemanticVersion: 1.0.0
+    SemanticVersion: 1.0.1
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
 Globals:
   Function:
@@ -110,7 +110,7 @@ Resources:
               Fn::GetAtt:
               - EventQueue
               - Arn
-      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/f2cc2277aa436e7678a238af4c0a5710
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/9b166cc4dc4e250aa4d8a9940db82b6b
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:

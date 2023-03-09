@@ -13,7 +13,7 @@ Metadata:
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/Webhook
-    SemanticVersion: 1.0.0
+    SemanticVersion: 1.0.1
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
 Globals:
   Function:
@@ -111,6 +111,8 @@ Resources:
               - EventQueue
               - Arn
       CodeUri: Function
+    Metadata:
+      SamResourceId: Function
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
