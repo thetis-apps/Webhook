@@ -97,8 +97,24 @@ exports.eventHandler = async (sqsEvent, context) => {
             
             if (found) {
                 console.log("Calling webhook at: " + setup.url);
-                let response = await axios.post(setup.url, event);   
-                console.log("SUCCESS " + JSON.stringify(response.data));
+                try {
+                    
+                    let response = await axios.post(setup.url, event);   
+                    console.log("SUCCESS " + JSON.stringify(response.data));
+                
+                } catch (error) {
+                    
+                    let message = new Object();
+            		message.time = Date.now();
+            		message.source = "Webhook";
+            		message.messageType = "ERROR";
+            		message.messageText = "Failed to call webhook at " + setup.url;
+            		message.deviceName = detail.deviceName;
+            		message.userId = detail.userId;
+            		message.documentation = JSON.stringify(error);
+            		await ims.post("events/" + detail.eventId + "/messages", message);
+
+                }
             }
         }
         
