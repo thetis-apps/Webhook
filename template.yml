@@ -17,7 +17,7 @@ Metadata:
     ReadmeUrl: README.md
     Labels: ['thetis-ims']
     HomePageUrl: https://github.com/thetis-apps/Webhook
-    SemanticVersion: 1.0.2
+    SemanticVersion: 1.1.9
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
@@ -107,6 +107,7 @@ Resources:
             BatchSize: 1
             Enabled: true
             Queue: !GetAtt EventQueue.Arn
+            
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties: 

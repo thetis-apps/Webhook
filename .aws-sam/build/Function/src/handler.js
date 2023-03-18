@@ -54,12 +54,47 @@ async function getIMS() {
     return ims;
 }
 
-async function getSetup(context) {
-    let dataDocument = JSON.parse(context.dataDocument);
-    if (dataDocument == null) {
-        return null;
-    } 
-    return dataDocument.Webhook;
+async function getWebhook(setup) {
+    
+    let webhook;
+    
+    if (setup.auth == 'oauth2') {
+        
+    	let auth = axios.create({
+			    headers: { 'Content-Type': "application/x-www-form-urlencoded" },
+    			responseType: 'json'
+    		});
+    
+        let data = { grant_type: 'client_credentials', client_id: setup.clientId, client_secret: setup.clientSecret, scope: setup.scope };
+        let response = await auth.post(setup.authUrl, data);
+        
+        console.log(JSON.stringify(response.data));
+        
+        let token = response.data.token_type + " " + response.data.access_token;
+        
+        webhook = axios.create({
+        		headers: { "Authorization": token, "Content-Type": "application/json" }
+        	});
+        	
+    } else {
+        
+        webhook = axios.create({
+        		headers: { "Content-Type": "application/json" }
+            });
+            
+    }
+	
+	webhook.interceptors.response.use(function (response) {
+			console.log("SUCCESS " + JSON.stringify(response.data));
+ 	    	return response;
+		}, function (error) {
+			if (error.response) {
+				console.log("FAILURE " + error.response.status + " - " + JSON.stringify(error.response.data));
+			}
+	    	return Promise.reject(error);
+		});
+		
+    return webhook;
 }
 
 exports.eventHandler = async (sqsEvent, context) => {
@@ -76,14 +111,16 @@ exports.eventHandler = async (sqsEvent, context) => {
         
         let ims = await getIMS();
         
-        let response = await ims.get('contexts/' + contextId);
-        let context = response.data;
-        
-        let setup = await getSetup(context);
-        
+        let response = await ims.get('contexts/' + contextId + '/dataDocument');
+        let dataDocument = response.data;
+        let setup = dataDocument.Webhook;
+
         console.log(JSON.stringify(setup));
         
         if (setup != null && setup.url != null) {
+            
+            // Check that this is a event of a type that webhook is enabled for
+            
             let found = false;
             if (setup.eventTypes != null) {
                 for (let eventType of setup.eventTypes) {
@@ -96,12 +133,29 @@ exports.eventHandler = async (sqsEvent, context) => {
             }
             
             if (found) {
-                console.log("Calling webhook at: " + setup.url);
+                
+                // Mask event object if a field list is given
+                
+                let body;
+                if (setup.fields != null) {
+                    body = new Object();
+                    for (let fieldName of setup.fields) {
+                        body[fieldName] = detail[fieldName];
+                    }
+                } else {
+                    body = event;
+                }
+                
+                // Now call the webhook
+                
+                let webhook = await getWebhook(setup);
+                
                 try {
                     
-                    let response = await axios.post(setup.url, event);   
-                    console.log("SUCCESS " + JSON.stringify(response.data));
-                
+                    await webhook.post(setup.url, body, { validateStatus: function (status) {
+        				    return status >= 200 && status < 300 || setup.ignoreStatusCodes != null && setup.ignoreStatusCodes.includes(status); 
+        				}});   
+
                 } catch (error) {
                     
                     let message = new Object();
@@ -113,8 +167,13 @@ exports.eventHandler = async (sqsEvent, context) => {
             		message.userId = detail.userId;
             		message.documentation = JSON.stringify(error);
             		await ims.post("events/" + detail.eventId + "/messages", message);
+            		
+            		// Re-throw the error to keep the event in queue
+            		
+            		throw error;
 
                 }
+                
             }
         }
         
