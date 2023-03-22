@@ -13,7 +13,7 @@ Metadata:
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/Webhook
-    SemanticVersion: 1.1.9
+    SemanticVersion: 1.1.10
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
 Globals:
   Function:
@@ -141,6 +141,7 @@ Resources:
   IncidentTopic:
     Type: AWS::SNS::Topic
     Properties:
+      KmsMasterKeyId: alias/aws/sns
       Subscription:
       - Endpoint:
           Ref: DevOpsEmail

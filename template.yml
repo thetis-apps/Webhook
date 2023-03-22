@@ -17,7 +17,7 @@ Metadata:
     ReadmeUrl: README.md
     Labels: ['thetis-ims']
     HomePageUrl: https://github.com/thetis-apps/Webhook
-    SemanticVersion: 1.1.9
+    SemanticVersion: 1.1.10
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
@@ -136,6 +136,7 @@ Resources:
   IncidentTopic:
     Type: AWS::SNS::Topic
     Properties:
+      KmsMasterKeyId: alias/aws/sns
       Subscription:
       - Endpoint: 
           Ref: DevOpsEmail        
