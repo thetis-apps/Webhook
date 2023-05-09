@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: An application for sending events to a webhook.
+Transform:
+- AWS::Serverless-2016-10-31
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: thetis-ims-webhook
+    Description: An application for sending events as webhook calls
+    Author: thetis-apps
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/4612b8d5aa75b9b9936c9b7b9e6c7e82
+    ReadmeUrl: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/823e4c805d22ebc01ee9a9a6b7b16b5b
+    Labels:
+    - thetis-ims
+    HomePageUrl: https://github.com/thetis-apps/Webhook
+    SemanticVersion: 1.0.1
+    SourceCodeUrl: https://github.com/thetis-apps/Webhook
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs12.x
+Parameters:
+  ContextId:
+    Type: String
+    Description: Only bridge events regarding context with this id.
+    MinLength: '1'
+  ClientId:
+    Description: Key of the parameter that has your Thetis client id as its value.
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ThetisClientId
+  ClientSecret:
+    Description: Key of the parameter that has your Thetis client secret as its value.
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: ThetisClientSecret
+  ApiKey:
+    Description: The api key that gives access to the context in Thetis IMS.
+    Type: String
+    MinLength: 1
+  DevOpsEmail:
+    Description: The email address to send mail to when messages in the dead letter
+      queue.
+    Type: String
+    MinLength: 4
+Resources:
+  EventQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+      ContentBasedDeduplication: true
+      RedrivePolicy:
+        deadLetterTargetArn:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - Arn
+        maxReceiveCount: 144
+      VisibilityTimeout: 300
+    Metadata:
+      SamResourceId: EventQueue
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source:
+        - public.thetis-ims.com
+        detail:
+          contextId:
+          - Ref: ContextId
+      Targets:
+      - Id: Target
+        Arn:
+          Fn::GetAtt:
+          - EventQueue
+          - Arn
+        SqsParameters:
+          MessageGroupId: SINGLETON
+    Metadata:
+      SamResourceId: EventRule
+  EventPermission:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: EventQueue
+      PolicyDocument:
+        Statement:
+        - Action: SQS:SendMessage
+          Effect: Allow
+          Resource:
+            Fn::GetAtt:
+            - EventQueue
+            - Arn
+          Principal:
+            Service: events.amazonaws.com
+    Metadata:
+      SamResourceId: EventPermission
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/handler.eventHandler
+      Environment:
+        Variables:
+          ClientId:
+            Ref: ClientId
+          ClientSecret:
+            Ref: ClientSecret
+          ApiKey:
+            Ref: ApiKey
+          ContextId:
+            Ref: ContextId
+      Events:
+        EventQueued:
+          Type: SQS
+          Properties:
+            BatchSize: 1
+            Enabled: true
+            Queue:
+              Fn::GetAtt:
+              - EventQueue
+              - Arn
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/df760532506a58082926ad901c758254
+    Metadata:
+      SamResourceId: Function
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      FifoQueue: true
+    Metadata:
+      SamResourceId: DeadLetterQueue
+  Alarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Alarm when any message is moved to the dead letter queue.
+      AlarmActions:
+      - Ref: IncidentTopic
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      MetricName: ApproximateNumberOfMessagesVisible
+      Period: 60
+      Namespace: AWS/SQS
+      Threshold: '0'
+      Unit: Count
+      Dimensions:
+      - Name: QueueName
+        Value:
+          Fn::GetAtt:
+          - DeadLetterQueue
+          - QueueName
+      TreatMissingData: notBreaching
+      Statistic: Maximum
+    Metadata:
+      SamResourceId: Alarm
+  IncidentTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Endpoint:
+          Ref: DevOpsEmail
+        Protocol: email
+      DisplayName: Incidents to be handled by Thetis Devops.
+    Metadata:
+      SamResourceId: IncidentTopic
