@@ -13,12 +13,12 @@ Metadata:
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/Webhook
-    SemanticVersion: 1.1.10
+    SemanticVersion: 1.1.11
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
 Globals:
   Function:
     Timeout: 30
-    Runtime: nodejs12.x
+    Runtime: nodejs16.x
 Parameters:
   ContextId:
     Type: String
@@ -116,7 +116,7 @@ Resources:
               Fn::GetAtt:
               - EventQueue
               - Arn
-      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/ac0ae06e8dc8fef1b713a0c3caba45e7
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/d52937d5efbfce580e7dcc97bff8d0a4
     Metadata:
       SamResourceId: Function
   DeadLetterQueue:
@@ -125,37 +125,3 @@ Resources:
       FifoQueue: true
     Metadata:
       SamResourceId: DeadLetterQueue
-  Alarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: Alarm when any message is moved to the dead letter queue.
-      AlarmActions:
-      - Ref: IncidentTopic
-      ComparisonOperator: GreaterThanThreshold
-      EvaluationPeriods: 1
-      MetricName: ApproximateNumberOfMessagesVisible
-      Period: 60
-      Namespace: AWS/SQS
-      Threshold: '0'
-      Unit: Count
-      Dimensions:
-      - Name: QueueName
-        Value:
-          Fn::GetAtt:
-          - DeadLetterQueue
-          - QueueName
-      TreatMissingData: notBreaching
-      Statistic: Maximum
-    Metadata:
-      SamResourceId: Alarm
-  IncidentTopic:
-    Type: AWS::SNS::Topic
-    Properties:
-      KmsMasterKeyId: alias/aws/sns
-      Subscription:
-      - Endpoint:
-          Ref: DevOpsEmail
-        Protocol: email
-      DisplayName: Incidents to be handled by Thetis Devops.
-    Metadata:
-      SamResourceId: IncidentTopic
