@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: '2010-09-09'
 Description: An application for sending events to a webhook.
 Transform:
 - AWS::Serverless-2016-10-31
@@ -13,7 +13,7 @@ Metadata:
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/Webhook
-    SemanticVersion: 1.1.11
+    SemanticVersion: 1.2.1
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
 Globals:
   Function:
