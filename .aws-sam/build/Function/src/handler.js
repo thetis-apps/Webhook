@@ -15,7 +15,13 @@
  */
 const axios = require('axios');
 
+let cachedIms = null;
+
 async function getIMS() {
+
+    if (cachedIms != null) {
+        return cachedIms;
+    }
 
     const authUrl = "https://auth.thetis-ims.com/oauth2/";
     const apiUrl = "https://api.thetis-ims.com/2/";
@@ -50,7 +56,9 @@ async function getIMS() {
 			}
 	    	return Promise.reject(error);
 		});
-		
+
+    cachedIms = ims;
+
     return ims;
 }
 
