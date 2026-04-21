@@ -13,12 +13,12 @@ Metadata:
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/Webhook
-    SemanticVersion: 1.3.0
+    SemanticVersion: 1.3.1
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
 Globals:
   Function:
     Timeout: 30
-    Runtime: nodejs16.x
+    Runtime: nodejs24.x
 Parameters:
   ContextId:
     Type: String
@@ -116,7 +116,7 @@ Resources:
               Fn::GetAtt:
               - EventQueue
               - Arn
-      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/d5977fb3e9c1fb839f12ae860c3d9f64
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/aa79422d9055f10a4db368da4934a9ea
     Metadata:
       SamResourceId: Function
   DeadLetterQueue:

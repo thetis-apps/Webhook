@@ -125,6 +125,79 @@ async function getWebhook(setup) {
     return webhook;
 }
 
+async function callWebhook(setup, detail, event, ims) {
+
+    if (setup.url == null) {
+        return null;
+    }
+
+    // Check that this is a event of a type that webhook is enabled for
+
+    let found = false;
+    if (setup.eventTypes != null) {
+        for (let eventType of setup.eventTypes) {
+            if (eventType === detail.eventType) {
+                found = true;
+            }
+        }
+    } else {
+        found = true;
+    }
+
+    if (found) {
+
+        let matches = true;
+        if (setup.pattern !== null) {
+            matches = patternMatches(detail, setup.pattern);
+        }
+
+        if (matches) {
+
+            // Mask event object if a field list is given
+
+            let body;
+            if (setup.fields != null) {
+                body = {};
+                for (let fieldName of setup.fields) {
+                    body[fieldName] = detail[fieldName];
+                }
+            } else {
+                body = event;
+            }
+
+            // Now call the webhook
+
+            let webhook = await getWebhook(setup);
+
+            try {
+
+                await webhook.post(setup.url, body, {
+                    validateStatus: function (status) {
+                        return status >= 200 && status < 300 || setup.ignoreStatusCodes != null && setup.ignoreStatusCodes.includes(status);
+                    }
+                });
+
+            } catch (error) {
+
+                let message = {};
+                message.time = Date.now();
+                message.source = "Webhook";
+                message.messageType = "ERROR";
+                message.messageText = "Failed to call webhook at " + setup.url;
+                message.deviceName = detail.deviceName;
+                message.userId = detail.userId;
+                message.documentation = JSON.stringify(error);
+                await ims.post("events/" + detail.eventId + "/messages", message);
+
+                // Re-throw the error to keep the event in queue
+
+                throw error;
+
+            }
+        }
+    }
+}
+
 exports.eventHandler = async (sqsEvent, _context) => {
     
     console.log(JSON.stringify(sqsEvent));
@@ -145,72 +218,13 @@ exports.eventHandler = async (sqsEvent, _context) => {
 
         console.log(JSON.stringify(setup));
         
-        if (setup != null && setup.url != null) {
-            
-            // Check that this is a event of a type that webhook is enabled for
-            
-            let found = false;
-            if (setup.eventTypes != null) {
-                for (let eventType of setup.eventTypes) {
-                    if (eventType === detail.eventType) {
-                        found = true;   
-                    }
+        if (setup != null) {
+            if (Array.isArray(setup)) {
+                for (let webhook of setup) {
+                    await callWebhook(webhook, detail, event, ims);
                 }
             } else {
-                found = true;
-            }
-
-            if (found) {
-
-                let matches = true;
-                if (setup.pattern !== null) {
-                    matches = patternMatches(detail, setup.pattern);
-                }
-
-                if (matches) {
-
-                    // Mask event object if a field list is given
-
-                    let body;
-                    if (setup.fields != null) {
-                        body = {};
-                        for (let fieldName of setup.fields) {
-                            body[fieldName] = detail[fieldName];
-                        }
-                    } else {
-                        body = event;
-                    }
-
-                    // Now call the webhook
-
-                    let webhook = await getWebhook(setup);
-
-                    try {
-
-                        await webhook.post(setup.url, body, {
-                            validateStatus: function (status) {
-                                return status >= 200 && status < 300 || setup.ignoreStatusCodes != null && setup.ignoreStatusCodes.includes(status);
-                            }
-                        });
-
-                    } catch (error) {
-
-                        let message = {};
-                        message.time = Date.now();
-                        message.source = "Webhook";
-                        message.messageType = "ERROR";
-                        message.messageText = "Failed to call webhook at " + setup.url;
-                        message.deviceName = detail.deviceName;
-                        message.userId = detail.userId;
-                        message.documentation = JSON.stringify(error);
-                        await ims.post("events/" + detail.eventId + "/messages", message);
-
-                        // Re-throw the error to keep the event in queue
-
-                        throw error;
-
-                    }
-                }
+                await callWebhook(setup, detail, event, ims);
             }
         }
         

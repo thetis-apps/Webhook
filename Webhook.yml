@@ -13,7 +13,7 @@ Metadata:
     Labels:
     - thetis-ims
     HomePageUrl: https://github.com/thetis-apps/Webhook
-    SemanticVersion: 1.3.1
+    SemanticVersion: 1.4.0
     SourceCodeUrl: https://github.com/thetis-apps/Webhook
 Globals:
   Function:
@@ -116,7 +116,7 @@ Resources:
               Fn::GetAtt:
               - EventQueue
               - Arn
-      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/aa79422d9055f10a4db368da4934a9ea
+      CodeUri: s3://aws-sam-cli-managed-default-samclisourcebucket-1q52gionhjeg3/ec652cd0407ee5ceb3a8f51999d83ad6
     Metadata:
       SamResourceId: Function
   DeadLetterQueue:
